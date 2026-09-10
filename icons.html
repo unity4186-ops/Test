@@ -1,0 +1,82 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Grid Game 아이콘</title>
+<style>
+  :root { --bg:#faf8ef; --fg:#776e65; --card:#fff; --line:#e6ded2; }
+  @media (prefers-color-scheme: dark) { :root { --bg:#1d1a17; --fg:#e8e2d9; --card:#2a2622; --line:#3d3831; } }
+  body { margin:0; padding:24px; background:var(--bg); color:var(--fg);
+         font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; }
+  h1 { font-size:26px; margin:0 0 4px; }
+  p.sub { margin:0 0 20px; opacity:.75; font-size:14px; }
+  h2 { font-size:15px; text-transform:uppercase; letter-spacing:.06em; opacity:.7;
+       margin:28px 0 10px; padding-bottom:6px; border-bottom:1px solid var(--line); }
+  .grid { display:grid; gap:10px; grid-template-columns:repeat(auto-fill, minmax(104px, 1fr)); }
+  figure { margin:0; padding:12px 6px; background:var(--card); border:1px solid var(--line);
+           border-radius:8px; text-align:center; cursor:pointer; }
+  figure:hover { border-color:currentColor; }
+  svg.icon { width:28px; height:28px; display:block; margin:0 auto 8px; }
+  figcaption { font-size:11px; opacity:.8; word-break:break-all; }
+  .toast { position:fixed; left:50%; bottom:24px; transform:translateX(-50%);
+           background:var(--fg); color:var(--bg); padding:8px 16px; border-radius:6px;
+           font-size:13px; opacity:0; transition:opacity .2s; pointer-events:none; }
+  .toast.show { opacity:1; }
+  code { background:var(--card); border:1px solid var(--line); border-radius:4px; padding:2px 6px; font-size:13px; }
+</style>
+</head>
+<body>
+<h1>Grid Game 아이콘</h1>
+<p class="sub">24×24 스트로크 아이콘 · <code>currentColor</code> 상속 · 카드를 누르면 <code>&lt;use&gt;</code> 코드가 복사됩니다.</p>
+
+<div id="sections"></div>
+<div class="toast" id="toast"></div>
+
+<script src="assets/icons.js"></script>
+<script>
+const GROUPS = [
+  ["실행 제어", ["play","pause","stop","restart","fast-forward","step"]],
+  ["확인 · 편집", ["confirm","cancel","undo","redo","back","chevron","plus","minus","trash","swap"]],
+  ["메뉴 · 화면", ["settings","sliders","menu","home","fullscreen","exit","help","info","theme","eye","bell","user"]],
+  ["소리", ["sound-on","sound-off","music"]],
+  ["인벤토리 · 아이템", ["bag","backpack","pouch","chest","key","lock","unlock","coin","gem","heart","star","shield","potion"]],
+  ["시간 · 에너지 · 부스터", ["clock","hourglass","flashlight","bolt","battery","hint","shuffle","magnet","bomb","target"]],
+  ["보드 · 진행", ["grid","map","flag"]],
+  ["점수 · 공유", ["trophy","leaderboard","stats","save","share","download"]],
+];
+
+const toast = document.getElementById("toast");
+function copy(name) {
+  const code = `<svg class="icon"><use href="assets/icons.svg#i-${name}"></use></svg>`;
+  navigator.clipboard?.writeText(code).catch(() => {});
+  toast.textContent = `복사됨: i-${name}`;
+  toast.classList.add("show");
+  clearTimeout(copy.t);
+  copy.t = setTimeout(() => toast.classList.remove("show"), 1200);
+}
+
+addEventListener("DOMContentLoaded", () => {
+  const host = document.getElementById("sections");
+  const listed = new Set();
+  const render = (title, names) => {
+    const h = document.createElement("h2");
+    h.textContent = `${title} (${names.length})`;
+    const g = document.createElement("div");
+    g.className = "grid";
+    for (const n of names) {
+      listed.add("i-" + n);
+      const f = document.createElement("figure");
+      f.innerHTML = `<svg class="icon"><use href="#i-${n}"></use></svg><figcaption>i-${n}</figcaption>`;
+      f.addEventListener("click", () => copy(n));
+      g.appendChild(f);
+    }
+    host.append(h, g);
+  };
+  GROUPS.forEach(([t, n]) => render(t, n));
+  const rest = (window.ICONS || []).filter((id) => !listed.has(id)).map((id) => id.slice(2));
+  if (rest.length) render("기타", rest);
+});
+</script>
+</body>
+</html>

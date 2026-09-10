@@ -15,8 +15,9 @@
     --gap: 12px;
   }
   @media (prefers-color-scheme: dark) {
-    :root { --bg: #1d1a17; --board: #4a4239; --cell: #5b5248; --text: #e8e2d9; --btn: #a08d78; }
+    :root:not([data-theme="light"]) { --bg: #1d1a17; --board: #4a4239; --cell: #5b5248; --text: #e8e2d9; --btn: #a08d78; }
   }
+  :root[data-theme="dark"] { --bg: #1d1a17; --board: #4a4239; --cell: #5b5248; --text: #e8e2d9; --btn: #a08d78; }
   * { box-sizing: border-box; }
   body {
     margin: 0; padding: 16px;
@@ -81,9 +82,36 @@
     flex-direction: column; align-items: center; justify-content: center; gap: 14px;
     text-align: center; z-index: 5;
   }
-  @media (prefers-color-scheme: dark) { .overlay { background: rgba(29, 26, 23, .82); } }
+  @media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) .overlay { background: rgba(29, 26, 23, .82); } }
+  :root[data-theme="dark"] .overlay { background: rgba(29, 26, 23, .82); }
   .overlay.show { display: flex; }
   .overlay p { font-size: 32px; font-weight: 700; margin: 0; }
+  .icon { width: 20px; height: 20px; display: block; }
+  .icon-btn {
+    display: inline-flex; align-items: center; justify-content: center; gap: 6px;
+    padding: 9px 12px;
+  }
+  .icon-btn .icon { width: 18px; height: 18px; }
+  .icon-only { padding: 9px; }
+  .modal {
+    position: fixed; inset: 0; z-index: 20; display: none;
+    align-items: center; justify-content: center; background: rgba(0,0,0,.45); padding: 16px;
+  }
+  .modal.show { display: flex; }
+  .panel {
+    background: var(--bg); border-radius: 10px; padding: 20px; width: 100%; max-width: 340px;
+    box-shadow: 0 12px 40px rgba(0,0,0,.3);
+  }
+  .panel h2 { margin: 0 0 16px; font-size: 20px; display: flex; align-items: center; gap: 8px; }
+  .panel h2 .icon { width: 22px; height: 22px; }
+  .row { display: flex; align-items: center; justify-content: space-between;
+         gap: 12px; padding: 10px 0; border-top: 1px solid rgba(128,128,128,.25); }
+  .row:first-of-type { border-top: 0; }
+  .row label { display: flex; align-items: center; gap: 8px; font-size: 15px; }
+  .row input[type="checkbox"] { width: 18px; height: 18px; accent-color: var(--btn); }
+  .panel .actions { display: flex; justify-content: flex-end; gap: 8px; margin-top: 16px; }
+  .danger { background: #c0563f; }
+  body.no-anim .tile { transition: none !important; animation: none !important; }
   footer { margin-top: 14px; font-size: 13px; opacity: .75; line-height: 1.6; }
 </style>
 </head>
@@ -100,8 +128,15 @@
   <div class="bar">
     <div class="hint">방향키 · WASD · 스와이프</div>
     <div>
-      <button id="undo" disabled>되돌리기</button>
-      <button id="new">새 게임</button>
+      <button id="settings" class="icon-btn icon-only" title="설정" aria-label="설정">
+        <svg class="icon"><use href="#i-settings"></use></svg>
+      </button>
+      <button id="undo" class="icon-btn" title="되돌리기 (Ctrl+Z)" disabled>
+        <svg class="icon"><use href="#i-undo"></use></svg>되돌리기
+      </button>
+      <button id="new" class="icon-btn" title="새 게임">
+        <svg class="icon"><use href="#i-restart"></use></svg>새 게임
+      </button>
     </div>
   </div>
 
@@ -111,8 +146,12 @@
     <div class="overlay" id="overlay">
       <p id="overlay-msg"></p>
       <div>
-        <button id="overlay-continue" hidden>계속하기</button>
-        <button id="overlay-new">새 게임</button>
+        <button id="overlay-continue" class="icon-btn" hidden>
+          <svg class="icon"><use href="#i-play"></use></svg>계속하기
+        </button>
+        <button id="overlay-new" class="icon-btn">
+          <svg class="icon"><use href="#i-restart"></use></svg>새 게임
+        </button>
       </div>
     </div>
   </div>
@@ -120,6 +159,32 @@
   <footer>같은 숫자 타일을 밀어 합치세요. 2048을 만들면 승리하며, 이후에도 계속 진행할 수 있습니다.</footer>
 </div>
 
+<div class="modal" id="settings-modal">
+  <div class="panel" role="dialog" aria-modal="true" aria-labelledby="settings-title">
+    <h2 id="settings-title"><svg class="icon"><use href="#i-sliders"></use></svg>설정</h2>
+    <div class="row">
+      <label for="opt-anim"><svg class="icon"><use href="#i-bolt"></use></svg>애니메이션</label>
+      <input type="checkbox" id="opt-anim" checked>
+    </div>
+    <div class="row">
+      <label for="opt-theme"><svg class="icon"><use href="#i-theme"></use></svg>다크 모드</label>
+      <input type="checkbox" id="opt-theme">
+    </div>
+    <div class="row">
+      <label><svg class="icon"><use href="#i-trophy"></use></svg>최고 점수</label>
+      <button id="reset-best" class="icon-btn danger">
+        <svg class="icon"><use href="#i-trash"></use></svg>초기화
+      </button>
+    </div>
+    <div class="actions">
+      <button id="settings-close" class="icon-btn">
+        <svg class="icon"><use href="#i-confirm"></use></svg>확인
+      </button>
+    </div>
+  </div>
+</div>
+
+<script src="assets/icons.js"></script>
 <script>
 (() => {
   "use strict";
@@ -316,6 +381,8 @@
     a: 0, w: 1, d: 2, s: 3, A: 0, W: 1, D: 2, S: 3
   };
   window.addEventListener("keydown", (e) => {
+    if (e.key === "Escape") { modal.classList.remove("show"); return; }
+    if (modal.classList.contains("show")) return;
     if (e.key === "z" && (e.ctrlKey || e.metaKey)) { e.preventDefault(); undo(); return; }
     const dir = KEYS[e.key];
     if (dir === undefined) return;
@@ -337,12 +404,37 @@
     move(Math.abs(dx) > Math.abs(dy) ? (dx > 0 ? 2 : 0) : (dy > 0 ? 3 : 1));
   }, { passive: true });
 
+  // ── 설정 ──────────────────────────────────────────
+  const OPTS = "gridgame.opts";
+  const modal = $("settings-modal"), optAnim = $("opt-anim"), optTheme = $("opt-theme");
+  let opts = { anim: true, theme: null };
+  try { opts = { ...opts, ...JSON.parse(localStorage.getItem(OPTS) || "{}") }; } catch { /* ignore */ }
+
+  function applyOpts() {
+    document.body.classList.toggle("no-anim", !opts.anim);
+    if (opts.theme) document.documentElement.dataset.theme = opts.theme;
+    else delete document.documentElement.dataset.theme;
+    optAnim.checked = opts.anim;
+    optTheme.checked = opts.theme
+      ? opts.theme === "dark"
+      : matchMedia("(prefers-color-scheme: dark)").matches;
+    try { localStorage.setItem(OPTS, JSON.stringify(opts)); } catch { /* private mode */ }
+  }
+
+  optAnim.addEventListener("change", () => { opts.anim = optAnim.checked; applyOpts(); });
+  optTheme.addEventListener("change", () => { opts.theme = optTheme.checked ? "dark" : "light"; applyOpts(); });
+  $("reset-best").addEventListener("click", () => { best = 0; saveBest(); render(); });
+  $("settings").addEventListener("click", () => modal.classList.add("show"));
+  $("settings-close").addEventListener("click", () => modal.classList.remove("show"));
+  modal.addEventListener("click", (e) => { if (e.target === modal) modal.classList.remove("show"); });
+
   $("new").addEventListener("click", reset);
   $("overlay-new").addEventListener("click", reset);
   undoBtn.addEventListener("click", undo);
   continueBtn.addEventListener("click", () => overlay.classList.remove("show"));
   window.addEventListener("resize", render);
 
+  applyOpts();
   reset();
 })();
 </script>
